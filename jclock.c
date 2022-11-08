@@ -197,19 +197,20 @@ static void jclock_render_callback(Canvas* const canvas, void* ctx) {
 
         if (state->settings.time_format == H12)
             canvas_draw_str_aligned(canvas, 65, 12, AlignCenter, AlignCenter, meridian_string);
-        //Battery%
 
+        // Battery% / Battery charge
+        snprintf(dtz_string, DTZ_LEN, "%02d", furi_hal_power_get_pct());
+        canvas_draw_str_aligned(canvas, 120, 0, AlignRight, AlignTop, dtz_string); // DRAW dTZ
+        if (furi_hal_power_is_charging()) {
+            canvas_draw_icon(canvas, 121, 0, &I_jjy_charge_7px);
+        }
+        else {
+            canvas_draw_icon(canvas, 121, 0, &I_jjy_nocharge_7px);
+        }
 
-        snprintf(dtz_string, DTZ_LEN, "%02d%%", furi_hal_power_get_pct());
-        canvas_draw_str_aligned(canvas, 128, 0, AlignRight, AlignTop, dtz_string); // DRAW dTZ
 
         // JJY indication
         switch (state->JJYmode) {
-        case JJY_NONE:
-            if (furi_hal_power_is_charging()) {
-                canvas_draw_icon(canvas, 0, 0, &I_jjy_charge_7px);
-            }
-            break;
         case JJY_AUTO_ENABLED:
             //canvas_draw_icon(canvas, canvas_width(canvas) - icon_get_width(&I_jjy_auto_7px), 0, &I_jjy_auto_7px);
             canvas_draw_icon(canvas, 0, 0, &I_jjy_auto_7px);
@@ -225,6 +226,7 @@ static void jclock_render_callback(Canvas* const canvas, void* ctx) {
             canvas_draw_icon(canvas, 0, 0, &I_jjy_forced_7px);
             break;
 
+        case JJY_NONE:
         default:
             break;
         }

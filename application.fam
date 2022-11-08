@@ -13,7 +13,7 @@ App(
     fap_icon="jclock_10px.png",
     #fap_icon_assets="assets",
     fap_category="Misc",
-	fap_author="GooGoo"
+	fap_author="hrundeel"
 )
 
 
