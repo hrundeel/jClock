@@ -41,18 +41,19 @@ typedef enum {
 typedef enum {
     DISABLED = 1, // JJY enabled auto
     ENABLED = 2,  //     disabled
-} JJYEnabled;
+} Enabled;
 
 typedef struct {
-    TimeFormat time_format;
-    DateFormat date_format;
-    JJYEnabled jjy_enabled;
-    float jjy_dtz;
+    TimeFormat TimeFormat;
+    DateFormat DateFormat;
+    Enabled JJYEnabled;
+    float JJYDtz;
+    Enabled BacklightOnCharge;
 } ClockSettings;
 
 #define JJY_DTZ_COUNT 193
-extern const char* const jjy_dtz_text[JJY_DTZ_COUNT];
-extern const float jjy_dtz_value[JJY_DTZ_COUNT];
+extern const char* const JJYDtzText[JJY_DTZ_COUNT];
+extern const float JJYDtzValue[JJY_DTZ_COUNT];
 
 uint8_t jclock_value_index_uint32(const uint32_t value, const uint32_t values[], uint8_t values_count);
 uint8_t jclock_value_index_float(const float value, const float values[], uint8_t values_count);

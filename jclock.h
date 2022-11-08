@@ -4,6 +4,7 @@
 
 #include <input/input.h>
 #include "jclock_settings.h"
+#include <notification/notification_messages.h>
 
 #define DEBUG_JCLOCK 1
 
@@ -34,17 +35,19 @@ typedef struct {
 typedef enum { JJY_NONE = 0, JJY_AUTO_ENABLED, JJY_AUTO_TRANSMIT, JJY_FORCED } JJYmode;
 
 typedef struct {
-    ClockSettings settings;
-    FuriHalRtcDateTime datetime;
-    uint32_t timestamp;
-
+    NotificationApp* notifications;
     FuriMutex* mutex;
     FuriMessageQueue* event_queue;
-    uint32_t timer_start_timestamp;
-    uint32_t timer_stopped_seconds;
-    bool timer_running;
-    JJYmode JJYmode;
-    FuriHalRtcDateTime JJYdatetime;     // corrected to dTMZ time
-    uint32_t JJYtimestamp;              // for correction dTMZ
-    uint32_t JJYinstance;               // current stage of transmitting
+
+    ClockSettings Settings;
+    FuriHalRtcDateTime DateTime;
+    uint32_t Timestamp;
+
+    uint32_t TimerStartTimestamp;
+    uint32_t TimerStoppedSeconds;
+    bool TimerRunning;
+    JJYmode JJYMode;
+    FuriHalRtcDateTime JJYDateTime;     // corrected to dTMZ time
+    uint32_t JJYTimestamp;              // for correction dTMZ
+    uint32_t JJYInstance;               // current stage of transmitting
 } ClockState;

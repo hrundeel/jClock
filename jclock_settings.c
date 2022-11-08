@@ -7,7 +7,7 @@
 #define TAG "jClock"
 
 typedef struct {
-    ClockSettings clock_settings;
+    ClockSettings ClockSettings;
     Gui* gui;
     ViewDispatcher* view_dispatcher;
     VariableItemList* variable_item_list;
@@ -19,34 +19,34 @@ static uint32_t jclock_settings_exit(void* context) {
 }
 
 #define JTIME_FORMAT_COUNT 2
-const char* const jtime_format_text[JTIME_FORMAT_COUNT] = {
+const char* const JtimeFormatText[JTIME_FORMAT_COUNT] = {
     "12h",
     "24h",
 };
 
-const uint32_t jtime_format_value[JTIME_FORMAT_COUNT] = { H12, H24 };
+const uint32_t JtimeFormatValue[JTIME_FORMAT_COUNT] = { H12, H24 };
 
 #define JDATE_FORMAT_COUNT 2
-const char* const jdate_format_text[JDATE_FORMAT_COUNT] = {
+const char* const JdateFormatText[JDATE_FORMAT_COUNT] = {
     "mm-dd", // ISO 8601
     "dd-mm", // RFC 5322
 };
 
-const uint32_t jdate_format_value[JDATE_FORMAT_COUNT] = { Iso, Rfc };
+const uint32_t JdateFormatValue[JDATE_FORMAT_COUNT] = { Iso, Rfc };
 
 //JJY
 
 #define JJY_ENABLED_COUNT 2
-const char* const jjy_enabled_text[JJY_ENABLED_COUNT] = {
+const char* const JJYEnabledText[JJY_ENABLED_COUNT] = {
     "Off",  // JJY enabled auto
     "On",   //     disabled
 };
 
-const uint32_t jjy_enabled_value[JJY_ENABLED_COUNT] = { DISABLED, ENABLED };
+const uint32_t JJYEnabledValue[JJY_ENABLED_COUNT] = { DISABLED, ENABLED };
 
 
 //#define JJY_DTZ_COUNT 193
-const char* const jjy_dtz_text[JJY_DTZ_COUNT] = {
+const char* const JJYDtzText[JJY_DTZ_COUNT] = {
     "-24:00",
     "-23:45", "-23:30", "-23:15", "-23:00",
     "-22:45", "-22:30", "-22:15", "-22:00",
@@ -99,7 +99,7 @@ const char* const jjy_dtz_text[JJY_DTZ_COUNT] = {
     "+23:00", "+23:15", "+23:30", "+23:45",
     "+24:00"
 };
-const float jjy_dtz_value[JJY_DTZ_COUNT] = {
+const float JJYDtzValue[JJY_DTZ_COUNT] = {
     -24.0f,
     -23.75f, -23.5f, -23.25f, -23.0f,
     -22.75f, -22.5f, -22.25f, -22.0f,
@@ -196,68 +196,83 @@ uint8_t jclock_value_index_bool(const bool value, const bool values[], uint8_t v
 static void time_format_changed(VariableItem* item) {
     ClockAppSettings* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, jtime_format_text[index]);
-    app->clock_settings.time_format = jtime_format_value[index];
+    variable_item_set_current_value_text(item, JtimeFormatText[index]);
+    app->ClockSettings.TimeFormat = JtimeFormatValue[index];
 }
 
 static void date_format_changed(VariableItem* item) {
     ClockAppSettings* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, jdate_format_text[index]);
-    app->clock_settings.date_format = jdate_format_value[index];
+    variable_item_set_current_value_text(item, JdateFormatText[index]);
+    app->ClockSettings.DateFormat = JdateFormatValue[index];
 }
 
 static void jjy_enabled_changed(VariableItem* item) {
     ClockAppSettings* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, jjy_enabled_text[index]);
-    app->clock_settings.jjy_enabled = jjy_enabled_value[index];
+    variable_item_set_current_value_text(item, JJYEnabledText[index]);
+    app->ClockSettings.JJYEnabled = JJYEnabledValue[index];
 }
 
 
 static void jjy_dtz_changed(VariableItem* item) {
     ClockAppSettings* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, jjy_dtz_text[index]);
-    app->clock_settings.jjy_dtz = jjy_dtz_value[index];
+    variable_item_set_current_value_text(item, JJYDtzText[index]);
+    app->ClockSettings.JJYDtz = JJYDtzValue[index];
 }
+
+static void jjy_backlight_on_charge(VariableItem* item) {
+    ClockAppSettings* app = variable_item_get_context(item);
+    uint8_t index = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, JJYEnabledText[index]);
+    app->ClockSettings.BacklightOnCharge = JJYEnabledValue[index];
+}
+
 
 static ClockAppSettings* alloc_settings() {
     ClockAppSettings* app = malloc(sizeof(ClockAppSettings));
-    LOAD_JCLOCK_SETTINGS(&app->clock_settings);
+    LOAD_JCLOCK_SETTINGS(&app->ClockSettings);
     app->gui = furi_record_open(RECORD_GUI);
     app->variable_item_list = variable_item_list_alloc();
     View* view = variable_item_list_get_view(app->variable_item_list);
     view_set_previous_callback(view, jclock_settings_exit);
 
     VariableItem* item;
-    uint8_t value_index;
+    uint8_t ValueIndex;
 
     item = variable_item_list_add(app->variable_item_list, "Clock format", JTIME_FORMAT_COUNT, time_format_changed, app);
-    value_index = jclock_value_index_uint32((uint32_t)(app->clock_settings.time_format), jtime_format_value, JTIME_FORMAT_COUNT);
+    ValueIndex = jclock_value_index_uint32((uint32_t)(app->ClockSettings.TimeFormat), JtimeFormatValue, JTIME_FORMAT_COUNT);
     //FURI_LOG_T(TAG, "Time format index: %u", value_index);
-    variable_item_set_current_value_index(item, value_index);
-    variable_item_set_current_value_text(item, jtime_format_text[value_index]);
+    variable_item_set_current_value_index(item, ValueIndex);
+    variable_item_set_current_value_text(item, JtimeFormatText[ValueIndex]);
 
     item = variable_item_list_add(app->variable_item_list, "Date format", JDATE_FORMAT_COUNT, date_format_changed, app);
-    value_index = jclock_value_index_uint32((uint32_t)(app->clock_settings.date_format), jdate_format_value, JDATE_FORMAT_COUNT);
+    ValueIndex = jclock_value_index_uint32((uint32_t)(app->ClockSettings.DateFormat), JdateFormatValue, JDATE_FORMAT_COUNT);
     //FURI_LOG_T(TAG, "Date format index: %u", value_index);
-    variable_item_set_current_value_index(item, value_index);
-    variable_item_set_current_value_text(item, jdate_format_text[value_index]);
+    variable_item_set_current_value_index(item, ValueIndex);
+    variable_item_set_current_value_text(item, JdateFormatText[ValueIndex]);
 
-    // JJY Enabled
+    // JJY Disabled/Enabled
     item = variable_item_list_add(app->variable_item_list, "JJY Enabled", JJY_ENABLED_COUNT, jjy_enabled_changed, app);
-    value_index = jclock_value_index_uint32((uint32_t)(app->clock_settings.jjy_enabled), jjy_enabled_value, JJY_ENABLED_COUNT);
-    FURI_LOG_I(TAG, "JJY ENABLED AUTO: %u", value_index);
-    variable_item_set_current_value_index(item, value_index);
-    variable_item_set_current_value_text(item, jjy_enabled_text[value_index]);
+    ValueIndex = jclock_value_index_uint32((uint32_t)(app->ClockSettings.JJYEnabled), JJYEnabledValue, JJY_ENABLED_COUNT);
+    FURI_LOG_I(TAG, "JJY ENABLED AUTO: %s", JJYEnabledText[ValueIndex]);
+    variable_item_set_current_value_index(item, ValueIndex);
+    variable_item_set_current_value_text(item, JJYEnabledText[ValueIndex]);
 
-    // JJY dTZ
+    // JJY dTZ (-24..0..24)
     item = variable_item_list_add(app->variable_item_list, "JJY dTZ", JJY_DTZ_COUNT, jjy_dtz_changed, app);
-    value_index = jclock_value_index_float((float)(app->clock_settings.jjy_dtz), jjy_dtz_value, JJY_DTZ_COUNT);
-    FURI_LOG_I(TAG, "JJY dTZ: %02d", value_index);
-    variable_item_set_current_value_index(item, value_index);
-    variable_item_set_current_value_text(item, jjy_dtz_text[value_index]);
+    ValueIndex = jclock_value_index_float((float)(app->ClockSettings.JJYDtz), JJYDtzValue, JJY_DTZ_COUNT);
+    FURI_LOG_I(TAG, "JJY dTZ: %s", JJYDtzText[ValueIndex]);
+    variable_item_set_current_value_index(item, ValueIndex);
+    variable_item_set_current_value_text(item, JJYDtzText[ValueIndex]);
+
+    // Backlight on charge Disabled/Enabled
+    item = variable_item_list_add(app->variable_item_list, "Backlight", JJY_ENABLED_COUNT, jjy_backlight_on_charge, app);
+    ValueIndex = jclock_value_index_uint32((uint32_t)(app->ClockSettings.BacklightOnCharge), JJYEnabledValue, JJY_ENABLED_COUNT);
+    FURI_LOG_I(TAG, "Backlight On Charge: %s", JJYEnabledText[ValueIndex]);
+    variable_item_set_current_value_index(item, ValueIndex);
+    variable_item_set_current_value_text(item, JJYEnabledText[ValueIndex]);
 
 
     app->view_dispatcher = view_dispatcher_alloc();
@@ -274,7 +289,7 @@ static void free_settings(ClockAppSettings* app) {
     variable_item_list_free(app->variable_item_list);
     view_dispatcher_free(app->view_dispatcher);
     furi_record_close(RECORD_GUI);
-    SAVE_JCLOCK_SETTINGS(&app->clock_settings);
+    SAVE_JCLOCK_SETTINGS(&app->ClockSettings);
     free(app);
 }
 

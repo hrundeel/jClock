@@ -2,8 +2,8 @@
 
 #include <gui/icon.h>
 
-extern const Icon I_jjy_auto_7px;
-extern const Icon I_jjy_auto_transmit_7px;
-extern const Icon I_jjy_charge_7px;
-extern const Icon I_jjy_forced_7px;
-extern const Icon I_jjy_nocharge_7px;
+extern const Icon I_JJY_AutoTransmit_10x7;
+extern const Icon I_JJY_Auto_10x7;
+extern const Icon I_JJY_Charge_7x7;
+extern const Icon I_JJY_Forced_10x7;
+extern const Icon I_JJY_NoCharge_7x7;
