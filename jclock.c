@@ -440,16 +440,13 @@ int32_t jclock(void* p) {
         furi_mutex_release(plugin_state->mutex);
     }
 
-    // backlight to auto default
-    notification_message(plugin_state->notifications, &sequence_display_backlight_enforce_auto);
-
-    //JJY free
+    // JJY free
     // Reset GPIO pins to default state
     furi_hal_gpio_init(&gpio_ext_pc0, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
 
-    // Notifications
+    // Backlight to auto default
+    notification_message(plugin_state->notifications, &sequence_display_backlight_enforce_auto);
     furi_record_close(RECORD_NOTIFICATION);
-    plugin_state->notifications = NULL;
 
     furi_timer_free(timer);
     view_port_enabled_set(view_port, false);
