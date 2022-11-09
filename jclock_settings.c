@@ -299,4 +299,5 @@ extern int32_t jclock_settings(void* p) {
     view_dispatcher_run(app->view_dispatcher);
     free_settings(app);
     return 0;
+
 }

@@ -57,3 +57,5 @@ extern const float JJYDtzValue[JJY_DTZ_COUNT];
 
 uint8_t jclock_value_index_uint32(const uint32_t value, const uint32_t values[], uint8_t values_count);
 uint8_t jclock_value_index_float(const float value, const float values[], uint8_t values_count);
+
+//extern int32_t jclock_settings(void* context_settings);

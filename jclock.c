@@ -17,7 +17,12 @@
 
 #include <furi_hal_gpio.h>
 #include <furi_hal_resources.h>
+#include <furi_hal_power.h>
+#include <furi_hal_rtc.h>
+
+#include <notification/notification.h>
 #include <notification/notification_messages.h>
+//#include <notification/notification_app.h>
 
 #include <gui/gui.h>
 #include <gui/elements.h>
@@ -31,9 +36,21 @@
 #define DTZ_LEN 9
 
 
+const NotificationMessage message_force_display_brightness_setting_night = {
+    .type = NotificationMessageTypeForceDisplayBrightnessSetting,
+    .data.forced_settings.display_brightness = 0.1f,
+};
+
+const NotificationSequence sequence_DisplayNightMode = {
+    &message_display_backlight_enforce_on,
+    &message_force_display_brightness_setting_night,
+    NULL,
+};
+
+
+
 // correct time to dTZ (-24f..+24f)
 static void jjy_correct_dtz(ClockState* state) {
-    //furi_hal_rtc_get_datetime(&curr_dt);
     state->JJYTimestamp = (double)furi_hal_rtc_datetime_to_timestamp(&state->DateTime) + ((double)state->Settings.JJYDtz * 86400);
     //check to crossing daylight saving time?
     //!!! add function when will be available
@@ -94,40 +111,53 @@ static void jclock_render_callback(Canvas* const canvas, void* ctx) {
     char TimerString[20];
 
     char DtzString[DTZ_LEN]; // JJY
+    bool now_isCharging;
 
-    // Check JJY mode
-    if (furi_hal_power_is_charging() == true) {
-        if (state->Settings.BacklightOnCharge == ENABLED) {
-            notification_message(state->notifications, &sequence_display_backlight_enforce_on);
-        }
+    now_isCharging = furi_hal_power_is_charging();
 
-        // check options for auto enabled?
-        if (state->JJYMode == JJY_AUTO_ENABLED) {
-#if (!DEBUG_JCLOCK) 
-            if (state->datetime.hour < 5) {
+    if (now_isCharging != state->isCharging) {   // just changed
+        state->isCharging = now_isCharging;
+
+        // Check JJY mode
+        if (state->isCharging) {    // charging now
+            notification_message(state->notifications, &sequence_single_vibro);
+
+            if (state->Settings.BacklightOnCharge == ENABLED) {
+                //notification_message(state->notifications, &sequence_display_backlight_enforce_on);
+                notification_message(state->notifications, &sequence_DisplayNightMode);
+
+                FURI_LOG_I(TAG, "Backlight Enforce");
+            }
+
+            // check options for auto enabled?
+            if (state->JJYMode == JJY_AUTO_ENABLED) {
+#if (!DEBUG_JCLOCK)
+                if (state->datetime.hour < 5) {
 #endif
-                state->JJYMode = JJY_AUTO_TRANSMIT;
-                FURI_LOG_I(TAG, "JJY-A Tx (charge on");
-#if (!DEBUG_JCLOCK) 
-            }
+                    state->JJYMode = JJY_AUTO_TRANSMIT;
+                    FURI_LOG_I(TAG, "JJY-A Tx (charge on");
+#if (!DEBUG_JCLOCK)
+                }
 #endif
-        }
-
-    }
-    else { // not charging (just now?)
-        notification_message(state->notifications, &sequence_display_backlight_enforce_auto);
-
-        if (state->JJYMode == JJY_AUTO_TRANSMIT) {
-            if (state->Settings.JJYEnabled) {
-                state->JJYMode = JJY_AUTO_ENABLED; // check if options ok
-                FURI_LOG_I(TAG, "JJY-A (charge off");
             }
+
         }
-        else {
-            if (state->JJYMode != JJY_FORCED) {
-                state->JJYMode = JJY_NONE; // check if options ok
-                FURI_LOG_I(TAG, "JJY disabled");
+        else { // not charging (just now?)
+            notification_message(state->notifications, &sequence_display_backlight_enforce_auto);
+            FURI_LOG_I(TAG, "Backlight Auto");
+
+            if (state->JJYMode == JJY_AUTO_TRANSMIT) {
+                if (state->Settings.JJYEnabled) {
+                    state->JJYMode = JJY_AUTO_ENABLED; // check if options ok
+                    FURI_LOG_I(TAG, "JJY-A (charge off");
+                }
             }
+            /*
+                        else if (state->JJYMode != JJY_FORCED) {
+                            state->JJYMode = JJY_NONE; // check if options ok
+                            FURI_LOG_I(TAG, "JJY disabled");
+                        }
+            */
         }
     }
 
@@ -200,7 +230,7 @@ static void jclock_render_callback(Canvas* const canvas, void* ctx) {
         // Battery% / Battery charge
         snprintf(DtzString, DTZ_LEN, "%02d", furi_hal_power_get_pct());
         canvas_draw_str_aligned(canvas, 120, 0, AlignRight, AlignTop, DtzString); // DRAW dTZ
-        if (furi_hal_power_is_charging() == true) {
+        if (state->isCharging) {
             canvas_draw_icon(canvas, 121, 0, &I_JJY_Charge_7x7);
         }
         else {
@@ -234,8 +264,6 @@ static void jclock_render_callback(Canvas* const canvas, void* ctx) {
         if (state->JJYMode != JJY_NONE) {
             uint8_t  ValueIndex = jclock_value_index_float((float)state->Settings.JJYDtz, JJYDtzValue, JJY_DTZ_COUNT);
             FURI_LOG_I(TAG, "JJY F dTZ: %s", JJYDtzText[ValueIndex]);
-            //snprintf(dtz_string, DTZ_LEN, "%02d:%02d", (int8_t)state->settings.jjy_dtz, abs((int16_t)(state->settings.jjy_dtz * 100) % 100));
-            //snprintf(dtz_string, DTZ_LEN, "%s", (const char*)item);
             snprintf(DtzString, DTZ_LEN, "%s", JJYDtzText[ValueIndex]);
 
             canvas_set_font(canvas, FontSecondary);
@@ -289,7 +317,6 @@ int32_t jclock(void* p) {
     UNUSED(p);
     ClockState* plugin_state = malloc(sizeof(ClockState));
 
-
     plugin_state->event_queue = furi_message_queue_alloc(8, sizeof(PluginEvent));
     if (plugin_state->event_queue == NULL) {
         FURI_LOG_E(TAG, "Cannot create event queue");
@@ -330,18 +357,26 @@ int32_t jclock(void* p) {
     Gui* gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
-    // Open Notification record
-    plugin_state->notifications = furi_record_open(RECORD_NOTIFICATION);
-
     furi_timer_start(timer, furi_kernel_get_tick_frequency());
     //FURI_LOG_D(TAG, "Timer started");
 
     furi_hal_rtc_get_datetime(&plugin_state->DateTime);
     plugin_state->Timestamp = furi_hal_rtc_datetime_to_timestamp(&plugin_state->DateTime);
 
+    // Open Notification record
+    plugin_state->notifications = furi_record_open(RECORD_NOTIFICATION);
+
+    // State of charging
+    plugin_state->isCharging = furi_hal_power_is_charging();
+
     // Backlight On Charged
-    if ((plugin_state->Settings.BacklightOnCharge == ENABLED) && (furi_hal_power_is_charging() == true)) {
-        notification_message(plugin_state->notifications, &sequence_display_backlight_enforce_on);
+    if ((plugin_state->Settings.BacklightOnCharge == ENABLED) && (plugin_state->isCharging)) {
+        //notification_message(plugin_state->notifications, &sequence_display_backlight_enforce_on);
+        notification_message(plugin_state->notifications, &sequence_DisplayNightMode);
+        FURI_LOG_I(TAG, "Backlight Enforce");
+    }
+    else {
+        FURI_LOG_I(TAG, "Backlight Auto");
     }
 
     //JJY init
@@ -360,27 +395,50 @@ int32_t jclock(void* p) {
 
         // press events
         if (event.type == EventTypeKey) {
-            if (event.input.type == InputTypeShort || event.input.type == InputTypeRepeat) {
+            //if (event.input.type == InputTypeShort || event.input.type == InputTypeRepeat) {
+            if (event.input.type == InputTypeShort) {
                 switch (event.input.key) {
+
                 case InputKeyUp:
                     //plugin_state->jjy_forced = true;
                     plugin_state->JJYMode = JJY_FORCED;
                     FURI_LOG_I(TAG, "JJY-F Tx");
                     break;
+
                 case InputKeyDown:
-                    //plugin_state->jjy_forced = false;
                     // check enabled/time ok to transmit!
-                    if (plugin_state->Settings.JJYEnabled == ENABLED) {
+                    switch (plugin_state->JJYMode) {
+                    case JJY_AUTO_ENABLED:
+                        plugin_state->JJYMode = JJY_NONE;
+                        FURI_LOG_I(TAG, "JJY none");
+                        break;
+
+                    case JJY_AUTO_TRANSMIT:
                         plugin_state->JJYMode = JJY_AUTO_ENABLED;
                         FURI_LOG_I(TAG, "JJY-A");
+                        break;
+
+                    case JJY_FORCED:
+                        if (plugin_state->Settings.JJYEnabled == ENABLED) {
+                            plugin_state->JJYMode = JJY_AUTO_ENABLED;
+                            FURI_LOG_I(TAG, "JJY-A");
+                        }
+                        else {
+                            plugin_state->JJYMode = JJY_NONE;
+                            FURI_LOG_I(TAG, "JJY none ");
+                        }
+                        break;
+
+                    case JJY_NONE:
+                    default:
+                        break;
                     }
-                    else {
-                        plugin_state->JJYMode = JJY_NONE;
-                        FURI_LOG_I(TAG, "JJY none ");
-                    }
+
                     break;
+
                 case InputKeyRight:
                     break;
+
                 case InputKeyLeft:
                     if (plugin_state->TimerStartTimestamp != 0) {
                         // Reset seconds
@@ -389,6 +447,8 @@ int32_t jclock(void* p) {
                         plugin_state->TimerStoppedSeconds = 0;
                     }
                     break;
+
+
                 case InputKeyOk:;
                     // START/STOP TIMER
 
@@ -414,19 +474,30 @@ int32_t jclock(void* p) {
                         }
                     }
                     plugin_state->TimerRunning = !plugin_state->TimerRunning;
+
+                    //jclock_settings(plugin_state);
                     break;
+
                 case InputKeyBack:
                     // Exit the plugin
                     processing = false;
+                    break;
+
+                default:
+                    break;
+                }
+            }
+            else if (event.input.type == InputTypeLong) {      // LONG PRESS
+                switch (event.input.key) {
+                case InputKeyOk:
+                    //jclock_settings(plugin_state);
                     break;
                 default:
                     break;
                 }
             }
-        } /*else if(event.type == EventTypeTick) {
-            furi_hal_rtc_get_datetime(&plugin_state->datetime);
-        }*/
-        if (event.type == EventTypeTick) {
+        }
+        else if (event.type == EventTypeTick) {
             furi_hal_rtc_get_datetime(&plugin_state->DateTime);
             plugin_state->Timestamp = furi_hal_rtc_datetime_to_timestamp(&plugin_state->DateTime);
 
@@ -446,12 +517,12 @@ int32_t jclock(void* p) {
 
     // Backlight to auto default
     notification_message(plugin_state->notifications, &sequence_display_backlight_enforce_auto);
-    furi_record_close(RECORD_NOTIFICATION);
 
     furi_timer_free(timer);
     view_port_enabled_set(view_port, false);
     gui_remove_view_port(gui, view_port);
     furi_record_close(RECORD_GUI);
+    furi_record_close(RECORD_NOTIFICATION);
     view_port_free(view_port);
     furi_message_queue_free(plugin_state->event_queue);
     furi_mutex_free(plugin_state->mutex);

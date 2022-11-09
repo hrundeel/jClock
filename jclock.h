@@ -46,8 +46,12 @@ typedef struct {
     uint32_t TimerStartTimestamp;
     uint32_t TimerStoppedSeconds;
     bool TimerRunning;
+
     JJYmode JJYMode;
     FuriHalRtcDateTime JJYDateTime;     // corrected to dTMZ time
     uint32_t JJYTimestamp;              // for correction dTMZ
     uint32_t JJYInstance;               // current stage of transmitting
+
+    float OldDisplayBrightness;
+    bool isCharging;
 } ClockState;
