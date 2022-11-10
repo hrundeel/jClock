@@ -6,6 +6,8 @@
 
 #define TAG "jClock"
 
+const ClockSettings defaultClockSettings = { H24, Rfc, true, 0.0f, true };
+
 typedef struct {
     ClockSettings ClockSettings;
     Gui* gui;
@@ -42,7 +44,7 @@ const char* const JJYEnabledText[JJY_ENABLED_COUNT] = {
     "On",   //     disabled
 };
 
-const uint32_t JJYEnabledValue[JJY_ENABLED_COUNT] = { DISABLED, ENABLED };
+const bool JJYEnabledValue[JJY_ENABLED_COUNT] = { false, true };
 
 
 //#define JJY_DTZ_COUNT 193
@@ -211,7 +213,7 @@ static void jjy_enabled_changed(VariableItem* item) {
     ClockAppSettings* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, JJYEnabledText[index]);
-    app->ClockSettings.JJYEnabled = JJYEnabledValue[index];
+    app->ClockSettings.isJJYEnabled = JJYEnabledValue[index];
 }
 
 
@@ -226,13 +228,15 @@ static void jjy_backlight_on_charge(VariableItem* item) {
     ClockAppSettings* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, JJYEnabledText[index]);
-    app->ClockSettings.BacklightOnCharge = JJYEnabledValue[index];
+    app->ClockSettings.isBacklightOnCharge = JJYEnabledValue[index];
 }
 
 
 static ClockAppSettings* alloc_settings() {
     ClockAppSettings* app = malloc(sizeof(ClockAppSettings));
-    LOAD_JCLOCK_SETTINGS(&app->ClockSettings);
+    if (!LOAD_JCLOCK_SETTINGS(&app->ClockSettings)) {
+        app->ClockSettings = defaultClockSettings;      //defaults
+    }
     app->gui = furi_record_open(RECORD_GUI);
     app->variable_item_list = variable_item_list_alloc();
     View* view = variable_item_list_get_view(app->variable_item_list);
@@ -255,7 +259,7 @@ static ClockAppSettings* alloc_settings() {
 
     // JJY Disabled/Enabled
     item = variable_item_list_add(app->variable_item_list, "JJY Enabled", JJY_ENABLED_COUNT, jjy_enabled_changed, app);
-    ValueIndex = value_index_uint32((uint32_t)(app->ClockSettings.JJYEnabled), JJYEnabledValue, JJY_ENABLED_COUNT);
+    ValueIndex = value_index_bool((bool)(app->ClockSettings.isJJYEnabled), JJYEnabledValue, JJY_ENABLED_COUNT);
     FURI_LOG_I(TAG, "JJY ENABLED AUTO: %s", JJYEnabledText[ValueIndex]);
     variable_item_set_current_value_index(item, ValueIndex);
     variable_item_set_current_value_text(item, JJYEnabledText[ValueIndex]);
@@ -269,7 +273,7 @@ static ClockAppSettings* alloc_settings() {
 
     // Backlight on charge Disabled/Enabled
     item = variable_item_list_add(app->variable_item_list, "Backlight", JJY_ENABLED_COUNT, jjy_backlight_on_charge, app);
-    ValueIndex = value_index_uint32((uint32_t)(app->ClockSettings.BacklightOnCharge), JJYEnabledValue, JJY_ENABLED_COUNT);
+    ValueIndex = value_index_bool((bool)(app->ClockSettings.isBacklightOnCharge), JJYEnabledValue, JJY_ENABLED_COUNT);
     FURI_LOG_I(TAG, "Backlight On Charge: %s", JJYEnabledText[ValueIndex]);
     variable_item_set_current_value_index(item, ValueIndex);
     variable_item_set_current_value_text(item, JJYEnabledText[ValueIndex]);
@@ -299,5 +303,4 @@ extern int32_t jclock_settings(void* p) {
     view_dispatcher_run(app->view_dispatcher);
     free_settings(app);
     return 0;
-
 }

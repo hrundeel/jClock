@@ -123,7 +123,7 @@ static void jclock_render_callback(Canvas* const canvas, void* ctx) {
         if (state->isCharging) {    // charging now
             notification_message(state->notifications, &sequence_single_vibro);
 
-            if (state->Settings.BacklightOnCharge == ENABLED) {
+            if (state->Settings.isBacklightOnCharge) {
                 //notification_message(state->notifications, &sequence_display_backlight_enforce_on);
                 notification_message(state->notifications, &sequence_DisplayNightMode);
 
@@ -148,7 +148,7 @@ static void jclock_render_callback(Canvas* const canvas, void* ctx) {
             FURI_LOG_I(TAG, "Backlight Auto");
 
             if (state->JJYMode == JJY_AUTO_TRANSMIT) {
-                if (state->Settings.JJYEnabled) {
+                if (state->Settings.isJJYEnabled) {
                     state->JJYMode = JJY_AUTO_ENABLED; // check if options ok
                     FURI_LOG_I(TAG, "JJY-A (charge off");
                 }
@@ -282,7 +282,10 @@ static void jclock_render_callback(Canvas* const canvas, void* ctx) {
 }
 
 static void jclock_state_init(ClockState* const state) {
-    LOAD_JCLOCK_SETTINGS(&state->Settings);
+    if (!LOAD_JCLOCK_SETTINGS(&state->Settings)) {
+        state->Settings = defaultClockSettings;      //defaults
+        SAVE_JCLOCK_SETTINGS(&state->Settings);
+    }
 
     if (state->Settings.TimeFormat != H12 && state->Settings.TimeFormat != H24) {
         state->Settings.TimeFormat = H12;
@@ -295,8 +298,8 @@ static void jclock_state_init(ClockState* const state) {
     //furi_hal_rtc_get_datetime(&state->datetime);
 
     //JJY
-    FURI_LOG_I(TAG, "JJY Enabled: %s", state->Settings.JJYEnabled == ENABLED ? "ON" : "OFF");
-    if (state->Settings.JJYEnabled == ENABLED) {
+    FURI_LOG_I(TAG, "JJY Enabled: %s", state->Settings.isJJYEnabled ? "ON" : "OFF");
+    if (state->Settings.isJJYEnabled) {
         state->JJYMode = JJY_AUTO_ENABLED;
     }
     else {
@@ -370,7 +373,7 @@ int32_t jclock(void* p) {
     plugin_state->isCharging = furi_hal_power_is_charging();
 
     // Backlight On Charged
-    if ((plugin_state->Settings.BacklightOnCharge == ENABLED) && (plugin_state->isCharging)) {
+    if ((plugin_state->Settings.isBacklightOnCharge) && (plugin_state->isCharging)) {
         //notification_message(plugin_state->notifications, &sequence_display_backlight_enforce_on);
         notification_message(plugin_state->notifications, &sequence_DisplayNightMode);
         FURI_LOG_I(TAG, "Backlight Enforce");
@@ -419,7 +422,7 @@ int32_t jclock(void* p) {
                         break;
 
                     case JJY_FORCED:
-                        if (plugin_state->Settings.JJYEnabled == ENABLED) {
+                        if (plugin_state->Settings.isJJYEnabled) {
                             plugin_state->JJYMode = JJY_AUTO_ENABLED;
                             FURI_LOG_I(TAG, "JJY-A");
                         }
