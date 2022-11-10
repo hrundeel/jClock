@@ -38,24 +38,21 @@ typedef enum {
     Rfc = 2,    // RFC 5322: dd-mm-yyyy
 } DateFormat;
 
-typedef enum {
-    DISABLED = 1, // JJY enabled auto
-    ENABLED = 2,  //     disabled
-} Enabled;
-
 typedef struct {
     TimeFormat TimeFormat;
     DateFormat DateFormat;
-    Enabled JJYEnabled;
+    bool isJJYEnabled;
     float JJYDtz;
-    Enabled BacklightOnCharge;
+    bool isBacklightOnCharge;
 } ClockSettings;
+
+extern const ClockSettings defaultClockSettings;
 
 #define JJY_DTZ_COUNT 193
 extern const char* const JJYDtzText[JJY_DTZ_COUNT];
 extern const float JJYDtzValue[JJY_DTZ_COUNT];
 
-//uint8_t jclock_value_index_uint32(const uint32_t value, const uint32_t values[], uint8_t values_count);
-//uint8_t jclock_value_index_float(const float value, const float values[], uint8_t values_count);
+//extern uint8_t jclock_value_index_uint32(const uint32_t value, const uint32_t values[], uint8_t values_count);
+//extern uint8_t jclock_value_index_float(const float value, const float values[], uint8_t values_count);
 
 //extern int32_t jclock_settings(void* context_settings);

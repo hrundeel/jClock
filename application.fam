@@ -5,17 +5,16 @@ App(
 	apptype=FlipperAppType.EXTERNAL,
     entry_point="jclock",
     cdefines=["APP_JCLOCK"],
-    requires=["gui"],
-    provides=["jclock_settings"],
+    requires=["gui", "jclock_settings"],
+    #? provides=["jclock_settings"],
     #icon="A_Clock_14",
     stack_size=2 * 1024,
     order=9,
     fap_icon="jclock_10px.png",
     #fap_icon_assets="assets",
     fap_category="Misc",
-	fap_author="hrundeel"
+	fap_author="hrundeel",
 )
-
 
 App(
     appid="jclock_settings",
@@ -23,7 +22,8 @@ App(
     #apptype=FlipperAppType.SETTINGS,
 	apptype=FlipperAppType.EXTERNAL,
     entry_point="jclock_settings",
-    requires=["gui","jClock"],
+    requires=["gui"],
+    #provides=["jclock"],
     stack_size=1 * 1024,
     order=20,
     fap_icon="jclockset_10px.png",
