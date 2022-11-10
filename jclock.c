@@ -27,6 +27,7 @@
 #include <gui/gui.h>
 #include <gui/elements.h>
 //#include <gui/icon.h>
+#include <lib/toolbox/value_index.h>
 
 #include "jclock.h"
 #include "jclock_settings.h"
@@ -262,10 +263,9 @@ static void jclock_render_callback(Canvas* const canvas, void* ctx) {
 
         // JJY dTZ
         if (state->JJYMode != JJY_NONE) {
-            uint8_t  ValueIndex = jclock_value_index_float((float)state->Settings.JJYDtz, JJYDtzValue, JJY_DTZ_COUNT);
-            FURI_LOG_I(TAG, "JJY F dTZ: %s", JJYDtzText[ValueIndex]);
+            uint8_t  ValueIndex = value_index_float((float)state->Settings.JJYDtz, JJYDtzValue, JJY_DTZ_COUNT);
+            //FURI_LOG_I(TAG, "JJY F dTZ: %s", JJYDtzText[ValueIndex]);
             snprintf(DtzString, DTZ_LEN, "%s", JJYDtzText[ValueIndex]);
-
             canvas_set_font(canvas, FontSecondary);
             canvas_draw_str_aligned(canvas, 12, 0, AlignLeft, AlignTop, DtzString); // DRAW dTZ
         }
